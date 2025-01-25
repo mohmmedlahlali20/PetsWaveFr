@@ -1,21 +1,50 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff } from "lucide-react"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+import path from "@/app/axios/path";
+import Cookies from "js-cookie";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    console.log("Login submitted")
+    if (!email || !password) {
+      setError("Email et mot de passe sont requis.");
+      setLoading(false);
+      return;
+    }
 
-    router.push("/")
-  }
+    try {
+      const res = await path.post("auth/login", { email, password });
+      console.log(res.data);
+
+      const { token } = res.data;
+      Cookies.set("token", token);
+      router.push("/");
+    } catch (err) {
+      console.error("Login error:", err);
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        (err.message.includes("Network Error") ? "Impossible de se connecter au serveur." : "Une erreur est survenue. Veuillez réessayer.");
+
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 flex items-center justify-center p-4">
@@ -26,6 +55,11 @@ export default function LoginPage() {
             <p className="text-sm text-gray-600 mt-1">Entrez vos identifiants pour accéder à votre compte</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-100 text-red-600 text-sm p-2 rounded-md">
+                <p>{error}</p>
+              </div>
+            )}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -34,8 +68,10 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
-                          focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 placeholder="john@example.com"
               />
             </div>
@@ -48,8 +84,10 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
-                            focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   type="button"
@@ -63,8 +101,9 @@ export default function LoginPage() {
             <button
               type="submit"
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={loading}
             >
-              Se connecter
+              {loading ? "Chargement..." : "Se connecter"}
             </button>
           </form>
         </div>
@@ -83,6 +122,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
