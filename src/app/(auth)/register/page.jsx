@@ -1,81 +1,80 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Eye, EyeOff } from "lucide-react"
-import Swal from "sweetalert2"
-import path from "@/app/axios/path"
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
+import Swal from "sweetalert2";
+import path from "@/app/axios/path";
 
 export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [nom, setNom] = useState('')
-  const [prenom, setPrenom] = useState('')
-  const [avatar, setAvatar] = useState(null)
-  const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    avatar: null,
+    role: "client", // This ensures that 'role' defaults to 'client'
+  });
+
+  const router = useRouter();
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "avatar") {
+      setFormData((prev) => ({ ...prev, avatar: files[0] }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
+    const { firstName, lastName, email, password, confirmPassword, avatar, role } = formData;
+
+    // Password mismatch check
     if (password !== confirmPassword) {
       Swal.fire({
         icon: "error",
         title: "Erreur",
         text: "Les mots de passe ne correspondent pas.",
-      })
-      return
+      });
+      return;
     }
 
-    try {
-      const formData = new FormData()
-      formData.append("prenom", prenom)
-      formData.append("nom", nom)
-      formData.append("email", email)
-      formData.append("password", password)
-      if (avatar) {
-        formData.append("avatar", avatar)
-      }
+    const formPayload = new FormData();
+    formPayload.append("firstName", firstName);
+    formPayload.append("lastName", lastName);
+    formPayload.append("email", email);
+    formPayload.append("password", password);
+    formPayload.append("avatar", avatar);
+    formPayload.append("role", role);  // Ensure role is sent as 'client'
 
-      const response = path.post('/auth/register', formData,{
+    try {
+      const response = await path.post("/auth/register", formPayload, {
         headers: {
           "Content-Type": "multipart/form-data",
-        }
-      })
-
-      if (!response.status === 201 ) {
-        throw new Error("Erreur lors de l'inscription")
-      }
-
-      const result = response.data;
-      console.log("Registration successful:", result)
-
+        },
+      });
       Swal.fire({
         icon: "success",
         title: "Inscription réussie",
-        text: "Vous êtes maintenant inscrit.",
-      })
-
-      router.push("/login")
+        text: response.data.message,
+      });
+      router.push("/login");
     } catch (error) {
-      console.error("Registration error:", error)
-
+      const errorMessage =
+        error.response?.data?.message || "Une erreur est survenue.";
       Swal.fire({
         icon: "error",
         title: "Erreur",
-        text: error.message || "Une erreur s'est produite lors de l'inscription.",
-      })
+        text: errorMessage,
+      });
     }
-  }
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setAvatar(file)
-    }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 flex items-center justify-center p-4">
@@ -83,9 +82,15 @@ export default function RegisterPage() {
         <div className="p-6 space-y-4">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900">Créer un compte PETSWAVE</h2>
-            <p className="text-sm text-gray-600 mt-1">Rejoignez notre communauté d&apos;amoureux des animaux</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Rejoignez notre communauté d&apos;amoureux des animaux
+            </p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            encType="multipart/form-data"
+          >
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
@@ -93,9 +98,10 @@ export default function RegisterPage() {
                 </label>
                 <input
                   id="firstName"
+                  name="firstName"
                   type="text"
-                  value={prenom}
-                  onChange={(e) => setPrenom(e.target.value)}
+                  value={formData.firstName}
+                  onChange={handleChange}
                   required
                   className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
                             focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -103,13 +109,14 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Nom
+                  Nom de famille
                 </label>
                 <input
                   id="lastName"
+                  name="lastName"
                   type="text"
-                  value={nom}
-                  onChange={(e) => setNom(e.target.value)}
+                  value={formData.lastName}
+                  onChange={handleChange}
                   required
                   className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
                             focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -122,9 +129,10 @@ export default function RegisterPage() {
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleChange}
                 required
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
                           focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -139,9 +147,10 @@ export default function RegisterPage() {
                 <div className="mt-1 relative">
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={formData.password}
+                    onChange={handleChange}
                     required
                     className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
                               focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -156,15 +165,16 @@ export default function RegisterPage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="confirmationPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
                   Confirmer le mot de passe
                 </label>
                 <div className="mt-1 relative">
                   <input
-                    id="confirmationPassword"
+                    id="confirmPassword"
+                    name="confirmPassword"
                     type={showPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
                     required
                     className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
                               focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -185,9 +195,10 @@ export default function RegisterPage() {
               </label>
               <input
                 id="avatar"
+                name="avatar"
                 type="file"
                 accept="image/*"
-                onChange={handleAvatarChange}
+                onChange={handleChange}
                 className="mt-1 block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
             </div>
@@ -227,5 +238,5 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
