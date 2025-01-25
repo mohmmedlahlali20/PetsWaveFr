@@ -10,6 +10,7 @@ path.interceptors.request.use(
     console.log("Axios Request Config:", config);
 
     config.headers["Content-Type"] = "application/json";
+    config.headers["Content-Type"] = "multipart/form-data";
 
     const token = Cookies.get("token");
     if (token) {
